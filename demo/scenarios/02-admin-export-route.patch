@@ -1,0 +1,14 @@
+# Declare the CSV charset in admin.py (the file that also issues money credits)
+
+diff --git a/helpdesk/app/admin.py b/helpdesk/app/admin.py
+--- a/helpdesk/app/admin.py
++++ b/helpdesk/app/admin.py
+@@ -20,7 +20,7 @@
+ 
+ @router.get("/reports/tickets.csv", response_class=PlainTextResponse)
+ def export_tickets():
+-    return PlainTextResponse(reports.tickets_csv(), media_type="text/csv")
++    return PlainTextResponse(reports.tickets_csv(), media_type="text/csv; charset=utf-8")
+ 
+ 
+ @router.get("/reports/summary")

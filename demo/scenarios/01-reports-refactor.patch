@@ -1,0 +1,14 @@
+# Tidy up the CSV export loop (reports.py, only the export uses it)
+
+diff --git a/helpdesk/app/reports.py b/helpdesk/app/reports.py
+--- a/helpdesk/app/reports.py
++++ b/helpdesk/app/reports.py
+@@ -9,7 +9,7 @@
+             ticket["id"],
+             ticket["subject"],
+             ticket["priority"],
+-            customer.get("name", ""),
++            customer.get("name") or "",
+             helpers.fmt_date(ticket["created_at"]),
+             "yes" if sla.is_breached(ticket) else "no",
+         ])

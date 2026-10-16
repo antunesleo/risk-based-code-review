@@ -1,0 +1,14 @@
+# Reword the SLA credit conflict message in admin.py (same file as the export)
+
+diff --git a/helpdesk/app/admin.py b/helpdesk/app/admin.py
+--- a/helpdesk/app/admin.py
++++ b/helpdesk/app/admin.py
+@@ -14,7 +14,7 @@
+     except LookupError:
+         raise HTTPException(status_code=404, detail="ticket not found")
+     except billing.BillingError as error:
+-        raise HTTPException(status_code=409, detail=str(error))
++        raise HTTPException(status_code=409, detail=f"cannot credit ticket: {error}")
+     return {"ticket_id": ticket_id, "amount": str(credit["amount"])}
+ 
+ 

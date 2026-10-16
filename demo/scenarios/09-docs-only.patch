@@ -1,0 +1,14 @@
+# Docs only change (README.md)
+
+diff --git a/helpdesk/README.md b/helpdesk/README.md
+--- a/helpdesk/README.md
++++ b/helpdesk/README.md
+@@ -6,7 +6,7 @@
+ There are no real module boundaries: `helpers.py` and `sla.py` are shared by
+ ticketing, billing and reporting; `admin.py` puts a money endpoint next to a CSV
+ export; services raise HTTP errors and reach into the global `db.DB` dict.
+-That is the point: you cannot tell how risky a change is from the file it touches.
++That is the whole point: you cannot tell how risky a change is from the file it touches.
+ 
+ Every test carries `@pytest.mark.tier(N)` for the error-impact tier of the flow
+ it protects:

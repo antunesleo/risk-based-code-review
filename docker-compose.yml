@@ -1,0 +1,45 @@
+name: monolith-review
+
+services:
+  # The big ball of mud, served.
+  helpdesk:
+    build: ./helpdesk
+    ports: ["${HELPDESK_PORT:-8000}:8000"]
+
+  # Runs the helpdesk suite against the *current working tree* and records
+  #   /data/.coverage        which test executed which line (coverage contexts)
+  #   /data/test-tiers.json  which tier each test protects (@pytest.mark.tier)
+  coverage-map:
+    build:
+      context: .
+      dockerfile: helpdesk/Dockerfile.test
+    working_dir: /work/helpdesk
+    environment:
+      COVERAGE_FILE: /data/.coverage
+    volumes:
+      - ./helpdesk:/work/helpdesk:ro
+      - tier-data:/data
+    command: >
+      pytest -q --cov --cov-context=test --cov-report=
+      --tier-catalog=/data/test-tiers.json --tier-strict
+
+  # Decides the review tier of the working-tree diff (override BASE to compare with a branch).
+  tier-review:
+    build:
+      context: ./tier-review
+      target: runtime
+    volumes:
+      - .:/repo:ro
+      - tier-data:/data:ro
+    command: >
+      classify --repo /repo --project helpdesk --base ${BASE:-HEAD}
+      --coverage /data/.coverage --catalog /data/test-tiers.json
+
+  # The tool's own unit tests.
+  tier-review-tests:
+    build:
+      context: ./tier-review
+      target: test
+
+volumes:
+  tier-data:

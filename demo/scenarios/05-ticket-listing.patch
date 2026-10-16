@@ -1,0 +1,11 @@
+# Stable ordering for the ticket list (tickets/service.py)
+
+diff --git a/helpdesk/app/tickets/service.py b/helpdesk/app/tickets/service.py
+--- a/helpdesk/app/tickets/service.py
++++ b/helpdesk/app/tickets/service.py
+@@ -58,4 +58,4 @@
+ 
+ 
+ def list_tickets(status=None):
+-    return sorted(TicketRepository().list(status), key=lambda t: t["created_at"], reverse=True)
++    return sorted(TicketRepository().list(status), key=lambda t: (t["created_at"], t["id"]), reverse=True)

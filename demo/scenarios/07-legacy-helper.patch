@@ -1,0 +1,11 @@
+# Change the default of a forgotten, untested helper (helpers.py)
+
+diff --git a/helpdesk/app/helpers.py b/helpdesk/app/helpers.py
+--- a/helpdesk/app/helpers.py
++++ b/helpdesk/app/helpers.py
+@@ -50,4 +50,4 @@
+ 
+ def legacy_priority_from_v1(code):
+     # Used once by a migration script in 2019. Nobody remembers. Nobody tests it.
+-    return {1: "urgent", 2: "high", 3: "normal"}.get(code, "low")
++    return {1: "urgent", 2: "high", 3: "normal"}.get(code, "normal")

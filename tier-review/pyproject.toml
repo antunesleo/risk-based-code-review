@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tier-review"
+version = "0.1.0"
+description = "Decide which review tier a change needs, using per-test coverage contexts and test tiers."
+requires-python = ">=3.11"
+dependencies = ["coverage>=7.4"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+tier-review = "tier_review.cli:main"
+
+[project.entry-points.pytest11]
+tier_review = "tier_review.collectors.pytest_plugin"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
