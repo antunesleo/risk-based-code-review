@@ -3,12 +3,12 @@
 diff --git a/example-codebase/README.md b/example-codebase/README.md
 --- a/example-codebase/README.md
 +++ b/example-codebase/README.md
-@@ -6,7 +6,7 @@
- There are no real module boundaries: `helpers.py` and `sla.py` are shared by
- ticketing, billing and reporting; `admin.py` puts a money endpoint next to a CSV
- export; services raise HTTP errors and reach into the global `db.DB` dict.
--That is the point: you cannot tell how risky a change is from the file it touches.
-+That is the whole point: you cannot tell how risky a change is from the file it touches.
+@@ -2,7 +2,7 @@
  
- Every test carries `@pytest.mark.tier(N)` for the error-impact tier of the flow
- it protects:
+ Example helpdesk system source, entangled on purpose (big ball of mud). Customers open tickets, agents reply, back office issues SLA credits, exports reports.
+ 
+-No real module boundaries: `helpers.py` and `sla.py` shared by ticketing, billing, reporting; `admin.py` puts money endpoint next to CSV export; services raise HTTP errors, reach into global `db.DB` dict. That the point: can't tell change risk from file touched.
++No real module boundaries: `helpers.py` and `sla.py` shared by ticketing, billing, reporting; `admin.py` puts money endpoint next to CSV export; services raise HTTP errors, reach into global `db.DB` dict. That whole point: can't tell change risk from file touched.
+ 
+ Every test carries `@pytest.mark.tier(N)` for error-impact tier of flow it protects:
+ 

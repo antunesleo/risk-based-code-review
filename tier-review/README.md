@@ -1,55 +1,47 @@
 # tier-review
 
-Decides which review a change needs by mapping every changed line to the
-error-impact tier of the tests that execute it. It is a small Python package with
-a CLI, a pytest plugin and a library API. It knows nothing about the project it
-reviews.
+Decide which review change needs by mapping every changed line to error-impact tier of tests that execute it. Small Python package with CLI, pytest plugin, library API. Knows nothing about project it reviews.
 
 | Tier | Errors... | Review |
 |------|-----------|--------|
-| **0** | can cause significant financial loss, expose sensitive data or violate regulations | human review by a domain owner |
-| **1** | affect important business flows, but the impact is limited or recoverable | human review |
-| **2** | have low impact and can be fixed without relevant consequences | automated review only |
+| **0** | can cause significant financial loss, expose sensitive data or violate regulations | human review by domain owner |
+| **1** | affect important business flows, but impact limited or recoverable | human review |
+| **2** | low impact, fixable without relevant consequences | automated review only |
 
 ## Install
 
-It is not on PyPI; install it from a local path:
+Not on PyPI; install from local path:
 
 ```sh
 pip install ./tier-review            # or "-e ./tier-review" while developing
 ```
 
-In a requirements file, add the path relative to where pip runs. The example codebase
-does this in `example-codebase/requirements-dev.txt`:
+In requirements file, add path relative to where pip runs. Example codebase does this in `example-codebase/requirements-dev.txt`:
 
 ```
 ../tier-review
 ```
 
-Installing it registers the `tier-review` command and the pytest plugin, both
-through entry points in `pyproject.toml`.
+Install registers `tier-review` command and pytest plugin, both via entry points in `pyproject.toml`.
 
 ## Use it
 
-**1. Tag tests** with the tier of the flow they protect:
+**1. Tag tests** with tier of flow they protect:
 
 ```python
 @pytest.mark.tier(0)
 def test_sla_credit_cannot_be_issued_twice(...): ...
 ```
 
-**2. Record a map**, which records which test ran each line and the tier of each test:
+**2. Record a map** — which test ran each line, tier of each test:
 
 ```sh
 pytest --cov --cov-context=test --tier-catalog=test-tiers.json --tier-strict
 ```
 
-`--cov-context=test` makes coverage.py label every executed line with the test that
-ran it. `--tier-catalog` writes `test-tiers.json` (test id → tier), and `--tier-strict`
-fails the run if any test has no tier. Measure test code too (`source = app, tests` in
-`.coveragerc`) so that test changes can be classified.
+`--cov-context=test` makes coverage.py label every executed line with test that ran it. `--tier-catalog` writes `test-tiers.json` (test id → tier); `--tier-strict` fails run if any test has no tier. Measure test code too (`source = app, tests` in `.coveragerc`) so test changes get classified.
 
-Record it twice: on the base commit and on the change.
+Record twice: on base commit and on change.
 
 **3. Classify the diff:**
 
@@ -60,9 +52,7 @@ tier-review classify --repo . --project example-codebase --base main \
     [--format json]
 ```
 
-It prints the tier, the review route, the lines that decided it and the tests behind
-each line. `--diff-file` reads a unified diff instead of asking git. The base map is
-optional, but without it any test change is tier 0 (see below).
+Prints tier, review route, deciding lines, tests behind each line. `--diff-file` reads unified diff instead of asking git. Base map optional, but without it any test change = tier 0 (see below).
 
 From Python:
 
@@ -93,39 +83,28 @@ src/tier_review/
   cli.py             argument parsing; builds the readers and runs ClassifyChange
 ```
 
-`classify.py` is the core. It depends only on the value types (`tiers`, `changes`,
-`decision`, `policy`) and on the interfaces it declares. The readers implement those
-interfaces with real files, and the unit tests implement them with in-memory fakes
-(`tests/fakes.py`). Only `cli.py` puts the readers and the rules together.
+`classify.py` is core. Depends only on value types (`tiers`, `changes`, `decision`, `policy`) and interfaces it declares. Readers implement interfaces with real files; unit tests implement them with in-memory fakes (`tests/fakes.py`). Only `cli.py` wires readers and rules together.
 
 ### The rules
 
-For each changed file and line, in order:
+Per changed file and line, in order:
 
 1. **Ignored** (`*.md`, ...) → skipped.
-2. **Deleted, moved or non-Python application file** → tier 0, because its impact
-   can't be traced.
-3. **A changed line** takes the most critical tier among
-   - the tests that execute it (or, if none do, the tests of its enclosing function), and
-   - the tests that executed the base lines it replaces or removes.
+2. **Deleted, moved or non-Python application file** → tier 0; impact can't be traced.
+3. **A changed line** takes most critical tier among
+   - tests that execute it (or, if none, tests of enclosing function), and
+   - tests that executed base lines it replaces or removes.
 
-   A test counts with the more critical of its base and head tier.
-4. **Test module code no test executes** (imports, constants) → the tests the module
-   defines, or every test below a `conftest.py`.
-5. **Still nothing** → tier 0, because no test would catch a mistake.
-6. **A test removed, or moved to a less critical tier** → its base tier.
+   Test counts with more critical of its base and head tier.
+4. **Test module code no test executes** (imports, constants) → tests module defines, or every test below a `conftest.py`.
+5. **Still nothing** → tier 0; no test would catch mistake.
+6. **Test removed, or moved to less critical tier** → its base tier.
 
-Blank lines are not changes. The change takes the most critical tier across all of
-its lines.
+Blank lines not changes. Change takes most critical tier across all its lines.
 
 ### Test code is classified too
 
-A test line takes the tier of the tests that execute it. For a test, that is the test
-itself; a fixture takes the most critical tier of the tests that use it. A PR that
-ships a tier 1 feature with its tier 1 test therefore stays tier 1. The base map
-catches the ways a PR could make code look safer than it is: retagging a test,
-deleting it, or making code stop running under a tier 0 test. Without a base map
-those can't be told apart from an ordinary edit, so any test change is tier 0.
+Test line takes tier of tests that execute it. For test, that's itself; fixture takes most critical tier of tests using it. PR shipping tier 1 feature with tier 1 test stays tier 1. Base map catches ways PR could make code look safer than it is: retagging test, deleting it, or making code stop running under tier 0 test. Without base map those indistinguishable from ordinary edit, so any test change = tier 0.
 
 ## Develop
 

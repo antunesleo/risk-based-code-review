@@ -1,15 +1,10 @@
 # example-codebase
 
-Example source code of a helpdesk system, entangled on purpose (a big ball of mud). Customers open
-tickets, agents reply, back office issues SLA credits and exports reports.
+Example helpdesk system source, entangled on purpose (big ball of mud). Customers open tickets, agents reply, back office issues SLA credits, exports reports.
 
-There are no real module boundaries: `helpers.py` and `sla.py` are shared by
-ticketing, billing and reporting; `admin.py` puts a money endpoint next to a CSV
-export; services raise HTTP errors and reach into the global `db.DB` dict.
-That is the point: you cannot tell how risky a change is from the file it touches.
+No real module boundaries: `helpers.py` and `sla.py` shared by ticketing, billing, reporting; `admin.py` puts money endpoint next to CSV export; services raise HTTP errors, reach into global `db.DB` dict. That the point: can't tell change risk from file touched.
 
-Every test carries `@pytest.mark.tier(N)` for the error-impact tier of the flow
-it protects:
+Every test carries `@pytest.mark.tier(N)` for error-impact tier of flow it protects:
 
 | Tier | Meaning | Tests here |
 |------|---------|------------|
