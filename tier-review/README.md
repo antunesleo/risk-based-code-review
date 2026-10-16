@@ -33,32 +33,34 @@ Install registers `tier-review` command and pytest plugin, both via entry points
 def test_sla_credit_cannot_be_issued_twice(...): ...
 ```
 
-**2. Record a map** — which test ran each line, tier of each test:
+**2. Catalog tiers** — line → tests (`LineTestCatalog`) and test → tier (`TestTierCatalog`), together `CatalogTiers`:
 
 ```sh
-pytest --cov --cov-context=test --tier-catalog=test-tiers.json --tier-strict
+pytest --cov --cov-context=test --test-tiers=test-tiers.json --tier-strict
 ```
 
-`--cov-context=test` makes coverage.py label every executed line with test that ran it. `--tier-catalog` writes `test-tiers.json` (test id → tier); `--tier-strict` fails run if any test has no tier. Measure test code too (`source = app, tests` in `.coveragerc`) so test changes get classified.
+`--cov-context=test` makes coverage.py label every executed line with test that ran it. `--test-tiers` writes `test-tiers.json` (test id → tier); `--tier-strict` fails run if any test has no tier. Measure test code too (`source = app, tests` in `.coveragerc`) so test changes get classified.
 
-Record twice: on base commit and on change.
+Catalog twice: on base commit and on working tree.
 
 **3. Classify the diff:**
 
 ```sh
 tier-review classify --repo . --project example-codebase --base main \
-    --coverage head/.coverage --catalog head/test-tiers.json \
-    --base-coverage base/.coverage --base-catalog base/test-tiers.json \
+    --line-tests head/.coverage --test-tiers head/test-tiers.json \
+    --base-line-tests base/.coverage --base-test-tiers base/test-tiers.json \
     [--format json]
 ```
 
-Prints tier, review route, deciding lines, tests behind each line. `--diff-file` reads unified diff instead of asking git. Base map optional, but without it any test change = tier 0 (see below).
+Prints tier, review route, deciding lines, tests behind each line. `--diff-file` reads unified diff instead of asking git. Base catalog optional, but without it any test change = tier 0 (see below).
 
 From Python:
 
 ```python
-from tier_review import BaseMap, ClassifyChange
-decision = ClassifyChange(diff, coverage, catalog, scopes, base=BaseMap(base_coverage, base_catalog)).execute()
+from tier_review import CatalogTiers, ClassifyDiff
+head = CatalogTiers(line_tests, test_tiers)
+base = CatalogTiers(base_line_tests, base_test_tiers)
+decision = ClassifyDiff(diff, head, scopes, base=base).execute()
 decision.tier, decision.verdicts
 ```
 
@@ -66,21 +68,22 @@ decision.tier, decision.verdicts
 
 ```
 src/tier_review/
-  classify.py        ClassifyChange: the rules. Also defines the four interfaces it reads:
-                       DiffSource, CoverageIndex, TierCatalog, ScopeResolver
-  tiers.py           Tier (0 critical, 1 important, 2 low) and its review route
-  changes.py         ChangeSet > ChangedFile > ChangeBlock (new lines + the base lines they replace)
-  decision.py        Decision > LineVerdict > Verdict (tier, Reason, tests)
-  policy.py          ReviewPolicy: which paths are tests, docs, source; the fallback tier
+  classify.py           ClassifyDiff: the rules. CatalogTiers: one commit's two catalogs.
+                          Also defines the interfaces it reads:
+                          DiffSource, LineTestCatalog, TestTierCatalog, ScopeResolver
+  tiers.py              Tier (0 critical, 1 important, 2 low) and its review route
+  changes.py            ChangeSet > ChangedFile > ChangeBlock (new lines + the base lines they replace)
+  decision.py           Decision > LineVerdict > Verdict (tier, Reason, tests)
+  policy.py             ReviewPolicy: which paths are tests, docs, source; the fallback tier
 
-  diff.py            DiffSource from `git diff -U0` or from text
-  coverage_index.py  CoverageIndex from a coverage.py data file with test contexts
-  catalog.py         TierCatalog from the JSON written by the plugin
-  scopes.py          ScopeResolver: innermost enclosing function, via the stdlib AST
+  diff.py               DiffSource from `git diff -U0` or from text
+  line_test_catalog.py  CoveragePyLineTestCatalog: LineTestCatalog from a coverage.py data file
+  test_tier_catalog.py  JsonTestTierCatalog: TestTierCatalog from the plugin's JSON
+  scopes.py             ScopeResolver: innermost enclosing function, via the stdlib AST
 
-  pytest_plugin.py   @pytest.mark.tier -> test-tiers.json
-  report.py          text and JSON rendering
-  cli.py             argument parsing; builds the readers and runs ClassifyChange
+  pytest_plugin.py      @pytest.mark.tier -> test-tiers.json
+  report.py             text and JSON rendering
+  cli.py                argument parsing; builds the readers and runs ClassifyDiff
 ```
 
 `classify.py` is core. Depends only on value types (`tiers`, `changes`, `decision`, `policy`) and interfaces it declares. Readers implement interfaces with real files; unit tests implement them with in-memory fakes (`tests/fakes.py`). Only `cli.py` wires readers and rules together.
@@ -100,11 +103,11 @@ Per changed file and line, in order:
 5. **Still nothing** → tier 0; no test would catch mistake.
 6. **Test removed, or moved to less critical tier** → its base tier.
 
-Blank lines not changes. Change takes most critical tier across all its lines.
+Blank lines not changes. Diff takes most critical tier across all its lines.
 
 ### Test code is classified too
 
-Test line takes tier of tests that execute it. For test, that's itself; fixture takes most critical tier of tests using it. PR shipping tier 1 feature with tier 1 test stays tier 1. Base map catches ways PR could make code look safer than it is: retagging test, deleting it, or making code stop running under tier 0 test. Without base map those indistinguishable from ordinary edit, so any test change = tier 0.
+Test line takes tier of tests that execute it. For test, that's itself; fixture takes most critical tier of tests using it. Diff shipping tier 1 feature with tier 1 test stays tier 1. Base catalog catches ways a diff could make code look safer than it is: retagging test, deleting it, or making code stop running under tier 0 test. Without base catalog those indistinguishable from ordinary edit, so any test change = tier 0.
 
 ## Develop
 

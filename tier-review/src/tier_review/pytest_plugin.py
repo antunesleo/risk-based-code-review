@@ -1,6 +1,6 @@
 """pytest plugin: reads `@pytest.mark.tier(N)` and writes the test -> tier catalog.
 
-    pytest --tier-catalog=test-tiers.json --tier-strict
+    pytest --test-tiers=test-tiers.json --tier-strict
 
 Node ids match the contexts pytest-cov records with `--cov-context=test`.
 """
@@ -10,13 +10,13 @@ from pathlib import Path
 
 import pytest
 
-from tier_review.catalog import JsonTierCatalog
+from tier_review.test_tier_catalog import JsonTestTierCatalog
 from tier_review.tiers import Tier
 
 
 def pytest_addoption(parser):
     group = parser.getgroup("tier-review")
-    group.addoption("--tier-catalog", metavar="PATH", help="write the test -> tier catalog to PATH")
+    group.addoption("--test-tiers", metavar="PATH", help="write the test -> tier catalog to PATH")
     group.addoption("--tier-strict", action="store_true", help="fail the run if any test has no tier marker")
 
 
@@ -38,5 +38,5 @@ def pytest_collection_modifyitems(session, config, items):
 
     if problems and config.getoption("tier_strict"):
         raise pytest.UsageError("tier-review:\n  " + "\n  ".join(problems))
-    if path := config.getoption("tier_catalog"):
-        JsonTierCatalog(tiers).dump(Path(path))
+    if path := config.getoption("test_tiers"):
+        JsonTestTierCatalog(tiers).dump(Path(path))

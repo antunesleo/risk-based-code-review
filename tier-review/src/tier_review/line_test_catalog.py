@@ -1,4 +1,4 @@
-"""CoverageIndex backed by a coverage.py data file recorded with per-test contexts.
+"""LineTestCatalog backed by a coverage.py data file recorded with per-test contexts.
 
 Record it with pytest-cov: `pytest --cov --cov-context=test`, which labels every
 executed line with `<test node id>|setup|run|teardown`.
@@ -12,7 +12,7 @@ from pathlib import Path
 from coverage import CoverageData
 
 
-class CoveragePyIndex:
+class CoveragePyLineTestCatalog:
     def __init__(self, data_file: Path):
         if not data_file.exists():
             raise FileNotFoundError(f"coverage data not found: {data_file}")

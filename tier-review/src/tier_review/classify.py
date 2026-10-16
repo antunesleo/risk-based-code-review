@@ -18,12 +18,12 @@ class DiffSource(Protocol):
         """Files and new-side line numbers touched by the change, relative to the project root."""
 
 
-class CoverageIndex(Protocol):
+class LineTestCatalog(Protocol):
     def tests_for(self, path: str, lines: Iterable[int]) -> frozenset[str]:
         """Ids of the tests that executed any of `lines` in `path`."""
 
 
-class TierCatalog(Protocol):
+class TestTierCatalog(Protocol):
     def tier_of(self, test_id: str) -> Tier | None:
         """Tier assigned to a test, or None if the test is unknown or untagged."""
 
@@ -37,24 +37,24 @@ class ScopeResolver(Protocol):
 
 
 @dataclass(frozen=True)
-class BaseMap:
-    """Coverage and tiers recorded on the base the change is compared with."""
+class CatalogTiers:
+    """What the catalog step records for one commit: line -> tests and test -> tier."""
 
-    coverage: CoverageIndex
-    catalog: TierCatalog
+    line_tests: LineTestCatalog
+    test_tiers: TestTierCatalog
 
 
-class ClassifyChange:
-    """A change takes the most critical tier of any test that executes a changed line.
+class ClassifyDiff:
+    """A diff takes the most critical tier of any test that executes a changed line.
 
     Test code is classified like application code: a test line takes the tier of the
     tests that execute it (the test itself, or every test using a fixture). Comparing
-    with the base map closes the ways a change could make code look safer than it is.
+    with the base catalog closes the ways a diff could make code look safer than it is.
 
     Rules, in order:
       1. Ignored files (docs, ...) do not count.
-      2. Without a base map, a changed test file -> unknown tier: we cannot tell an
-         edit from a downgrade of the map we rely on.
+      2. Without a base catalog, a changed test file -> unknown tier: we cannot tell an
+         edit from a downgrade of the catalog we rely on.
       3. Deleted or moved application files, non-Python files -> unknown tier: we
          cannot trace their impact.
       4. A changed line takes the most critical tier among
@@ -70,15 +70,13 @@ class ClassifyChange:
     def __init__(
         self,
         diff: DiffSource,
-        coverage: CoverageIndex,
-        catalog: TierCatalog,
+        head: CatalogTiers,
         scopes: ScopeResolver,
         policy: ReviewPolicy | None = None,
-        base: BaseMap | None = None,
+        base: CatalogTiers | None = None,
     ):
         self._diff = diff
-        self._coverage = coverage
-        self._catalog = catalog
+        self._head = head
         self._scopes = scopes
         self._policy = policy or ReviewPolicy()
         self._base = base
@@ -106,13 +104,13 @@ class ClassifyChange:
 
     def _classify_line(self, changed: ChangedFile, line: int, is_test: bool) -> Verdict:
         path = changed.path
-        current = self._coverage.tests_for(path, [line])
+        current = self._head.line_tests.tests_for(path, [line])
         reason = Reason.DIRECT_COVERAGE
         if not current:
             scope = self._scopes.enclosing_scope(path, line)
-            current = self._coverage.tests_for(path, scope) if scope else frozenset()
+            current = self._head.line_tests.tests_for(path, scope) if scope else frozenset()
             reason = Reason.ENCLOSING_SCOPE
-        previous = self._base.coverage.tests_for(path, changed.replaced_lines(line)) if self._base else frozenset()
+        previous = self._base.line_tests.tests_for(path, changed.replaced_lines(line)) if self._base else frozenset()
 
         tests = current | previous
         if not tests and is_test:
@@ -132,11 +130,11 @@ class ClassifyChange:
         """Tests the change removes or moves to a less critical tier."""
         if self._base is None:
             return ()
-        current = self._catalog.test_ids()
+        current = self._head.test_tiers.test_ids()
         verdicts = []
-        for test in sorted(self._base.catalog.test_ids()):
-            was = self._base.catalog.tier_of(test)
-            now = self._catalog.tier_of(test)
+        for test in sorted(self._base.test_tiers.test_ids()):
+            was = self._base.test_tiers.tier_of(test)
+            now = self._head.test_tiers.tier_of(test)
             if was is None:
                 continue
             if test not in current:
@@ -149,13 +147,13 @@ class ClassifyChange:
         return tuple(verdicts)
 
     def _tier_of(self, test: str) -> Tier | None:
-        catalogs = [self._catalog] + ([self._base.catalog] if self._base else [])
+        catalogs = [self._head.test_tiers] + ([self._base.test_tiers] if self._base else [])
         tiers = [tier for catalog in catalogs if (tier := catalog.tier_of(test)) is not None]
         return Tier.most_critical(tiers) if tiers else None
 
     def _tests_defined_by(self, path: str) -> frozenset[str]:
         """Tests a test module defines, or every test below a conftest.py."""
-        known = self._catalog.test_ids() | (self._base.catalog.test_ids() if self._base else frozenset())
+        known = self._head.test_tiers.test_ids() | (self._base.test_tiers.test_ids() if self._base else frozenset())
         directory, _, name = path.rpartition("/")
         if name == "conftest.py":
             return frozenset(t for t in known if not directory or _test_path(t).startswith(directory + "/"))

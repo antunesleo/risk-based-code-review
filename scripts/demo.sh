@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Maps the committed example codebase once (base), then applies each patch in demo/scenarios,
-# rebuilds the map of the patched tree (head),
-# asks tier-review for a decision, then reverts the patch.
+# Catalogs tiers of the committed example codebase once (base), then applies each patch
+# in demo/scenarios, catalogs the patched tree (head), classifies the diff, and reverts
+# the patch.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -14,18 +14,18 @@ if [ -n "$(git ls-files --others --exclude-standard example-codebase tier-review
   exit 1
 fi
 
-docker compose build --quiet coverage-map tier-review
+docker compose build --quiet catalog-tiers tier-review
 
-# The base map: the committed tree, before any scenario is applied.
-echo "building the base map from HEAD..."
-make --no-print-directory map-base BASE=HEAD > /dev/null
+# The base catalog: the committed tree, before any scenario is applied.
+echo "cataloging tiers of HEAD (base)..."
+make --no-print-directory catalog-tiers-base BASE=HEAD > /dev/null
 
 for patch in demo/scenarios/*.patch; do
   title=$(sed -n 's/^# //p' "$patch" | head -1)
   printf '\n\033[1m=== %s\033[0m\n    %s\n\n' "$(basename "$patch" .patch)" "$title"
   git apply "$patch"
   trap 'git apply -R "$patch"' EXIT
-  MAP=head docker compose run --rm -T coverage-map > /dev/null
+  CATALOG=head docker compose run --rm -T catalog-tiers > /dev/null
   docker compose run --rm -T tier-review
   git apply -R "$patch"
   trap - EXIT

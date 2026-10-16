@@ -6,25 +6,26 @@ services:
     build: ./example-codebase
     ports: ["${HELPDESK_PORT:-8000}:8000"]
 
-  # Runs the example codebase suite (application and test code measured) and records
-  #   /data/$MAP/.coverage        which test executed which line (coverage contexts)
-  #   /data/$MAP/test-tiers.json  which tier each test protects (@pytest.mark.tier)
-  # MAP=head maps the working tree; MAP=base with MAP_SRC maps a snapshot of the base.
-  coverage-map:
+  # Catalog tiers: runs the example codebase suite (application and test code measured)
+  # and records
+  #   /data/$CATALOG/.coverage        line -> tests (coverage contexts)
+  #   /data/$CATALOG/test-tiers.json  test -> tier (@pytest.mark.tier)
+  # CATALOG=head catalogs the working tree; CATALOG=base with CATALOG_SRC a base snapshot.
+  catalog-tiers:
     build:
       context: .
       dockerfile: example-codebase/Dockerfile.test
     working_dir: /work/example-codebase
     environment:
-      COVERAGE_FILE: /data/${MAP:-head}/.coverage
+      COVERAGE_FILE: /data/${CATALOG:-head}/.coverage
     volumes:
-      - ${MAP_SRC:-./example-codebase}:/work/example-codebase:ro
+      - ${CATALOG_SRC:-./example-codebase}:/work/example-codebase:ro
       - tier-data:/data
     command: >
-      sh -c "mkdir -p /data/${MAP:-head} && pytest -q --cov --cov-context=test --cov-report=
-      --tier-catalog=/data/${MAP:-head}/test-tiers.json --tier-strict"
+      sh -c "mkdir -p /data/${CATALOG:-head} && pytest -q --cov --cov-context=test --cov-report=
+      --test-tiers=/data/${CATALOG:-head}/test-tiers.json --tier-strict"
 
-  # Decides the review tier of the working-tree diff against BASE, using both maps.
+  # Classifies the working-tree diff against BASE, using both catalogs.
   tier-review:
     build:
       context: ./tier-review
@@ -34,8 +35,8 @@ services:
       - tier-data:/data:ro
     command: >
       classify --repo /repo --project example-codebase --base ${BASE:-HEAD}
-      --coverage /data/head/.coverage --catalog /data/head/test-tiers.json
-      --base-coverage /data/base/.coverage --base-catalog /data/base/test-tiers.json
+      --line-tests /data/head/.coverage --test-tiers /data/head/test-tiers.json
+      --base-line-tests /data/base/.coverage --base-test-tiers /data/base/test-tiers.json
 
 volumes:
   tier-data:

@@ -10,7 +10,7 @@ class FakeDiff:
         return self._changes
 
 
-class FakeCoverage:
+class FakeLineTestCatalog:
     def __init__(self, lines: dict[tuple[str, int], set[str]]):
         self._lines = lines
 
@@ -18,7 +18,7 @@ class FakeCoverage:
         return frozenset(t for line in lines for t in self._lines.get((path, line), ()))
 
 
-class FakeCatalog:
+class FakeTestTierCatalog:
     def __init__(self, tiers: dict[str, int]):
         self._tiers = {k: Tier(v) for k, v in tiers.items()}
 

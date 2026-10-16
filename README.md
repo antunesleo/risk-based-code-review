@@ -27,12 +27,19 @@ scripts/           demo runner
 
 ## How it works
 
-1. **Map.** Example codebase suite runs with pytest-cov recording *which test* executed every
-   line (app and test code), and tier-review pytest plugin writing each test's tier.
-   Happens twice: on base commit (`make map-base`) and on working tree (`make map`).
-2. **Classify.** `tier-review classify` gives each changed line most critical tier of
-   tests running it, now or on base. Line no test reaches = tier 0, since no test would
-   catch mistake there. Change takes most critical tier of its lines.
+Two steps: **catalog tiers**, then **classify the diff**.
+
+1. **Catalog tiers.** Example codebase suite runs and records two catalogs:
+   - `LineTestCatalog` (`.coverage`): line → tests that executed it (pytest-cov contexts,
+     app and test code).
+   - `TestTierCatalog` (`test-tiers.json`): test → tier (tier-review pytest plugin).
+
+   Together = `CatalogTiers`. Built twice: on base commit (`make catalog-tiers-base`) and
+   on working tree (`make catalog-tiers`). No line → tier table is stored.
+2. **Classify the diff.** `tier-review classify` chains the catalogs per changed line,
+   line → tests → tiers, and keeps most critical tier, now or on base. Line no test
+   reaches = tier 0, since no test would catch mistake there. Diff takes most critical
+   tier of its lines.
 
 Full rules and package build in
 [tier-review/README.md](tier-review/README.md).
@@ -42,8 +49,8 @@ Full rules and package build in
 All runs in Docker. Tool classifies working-tree changes against git (`BASE`, default `HEAD`).
 
 ```sh
-make demo         # map HEAD, then apply each scenario, map it, classify, revert (needs a clean tree)
-make review       # map BASE and the working tree, classify your changes (BASE=main for a branch)
+make demo         # catalog HEAD, then per scenario: apply, catalog, classify, revert (needs a clean tree)
+make review       # catalog BASE and the working tree, classify the diff (BASE=main for a branch)
 make test         # example codebase tests
 make tool-test    # tier-review unit tests
 make up           # serve the helpdesk on :8000 (HELPDESK_PORT=8089 make up)
@@ -77,17 +84,17 @@ Scenarios 02/03 and 04/07 show point: **same file** lands in different tiers dep
 
 Tiers only as trustworthy as tests behind them, so PR editing tests edits safety net of flows they protect. So **reviewing tests as important as reviewing code**: weakened assertion in SLA credit test = tier 0 risk, even if no app line changed.
 
-Tool treats test code like app code. Test line takes tier of tests executing it (fixture takes most critical tier of tests using it), so PR shipping tier 1 feature with its tier 1 test stays tier 1. Base map closes ways PR could make code look safer than it is:
+Tool treats test code like app code. Test line takes tier of tests executing it (fixture takes most critical tier of tests using it), so PR shipping tier 1 feature with its tier 1 test stays tier 1. Base catalog closes ways a diff could make code look safer than it is:
 
 - **Retagging** `@pytest.mark.tier(0)` → `tier(2)` keeps tier 0 (scenario 10).
 - **Deleting a test** takes tier it had on base (scenario 11).
 - **Removing coverage**: code tier 0 tests used to run stays tier 0 even if PR stops them running it.
 
-Without base map (`--base-coverage`, `--base-catalog`), tool can't tell edit from downgrade, so any test change falls back to tier 0.
+Without base catalog (`--base-line-tests`, `--base-test-tiers`), tool can't tell edit from downgrade, so any test change falls back to tier 0.
 
 ## Known limits (deliberately conservative)
 
-- **Map lag.** Demo builds both maps from scratch, so exact. Real CI with slow suite: keep map built on `main` after each merge as base map, only build head map in PRs. Skip head map too and new lines rely on enclosing-function inheritance; change making tier 0 flow reach helper goes unnoticed until next map. Rebuild every merge, not nightly.
+- **Catalog lag.** Demo catalogs both sides from scratch, so exact. Real CI with slow suite: keep catalog built on `main` after each merge as base catalog, only build head catalog in PRs. Skip head catalog too and new lines rely on enclosing-function inheritance; diff making tier 0 flow reach helper goes unnoticed until next catalog. Rebuild every merge, not nightly.
 - **Import-time code.** Module-level statements (constants like `SLA_HOURS`) run during test collection, outside any test, so unattributable, fall to tier 0.
 - **Fixtures count.** Code running in test setup/teardown attributed to that test. Example codebase tier 0 tests seed data straight into DB instead of via ticket API. Otherwise ticket creation would inherit tier 0.
 - **Assertion strength is invisible.** Weakened tier 2 test still tier 2 change. Acceptable by definition, and tier 0 tests always need owner review.

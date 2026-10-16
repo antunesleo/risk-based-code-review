@@ -32,7 +32,7 @@ def parse_unified_diff(text: str, scope: ProjectScope = ProjectScope()) -> Chang
 
     Changed lines are reported on the new side; blank lines are skipped. A removed block with nothing added
     in its place is attributed to the new lines on both sides of the gap. Each block
-    also keeps the base lines it removed, so they can be looked up in the base map.
+    also keeps the base lines it removed, so they can be looked up in the base catalog.
     """
     files: list[_FileBuilder] = []
     current: _FileBuilder | None = None

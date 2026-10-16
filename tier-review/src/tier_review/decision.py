@@ -15,7 +15,7 @@ class Reason(Enum):
     UNTIERED_TEST = "executed by a test that has no tier"
     TEST_DOWNGRADED = "test moved to a less critical tier, which lowers the tier of the code it protects"
     TEST_REMOVED = "test removed, the flow it protected loses its safety net"
-    TEST_CHANGED = "test code changed and there is no base map to compare against"
+    TEST_CHANGED = "test code changed and there is no base catalog to compare against"
     FILE_MOVED = "file deleted or moved, its importers cannot be traced from this change"
     UNANALYZABLE = "not Python source, impact cannot be traced"
 

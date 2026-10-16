@@ -1,4 +1,4 @@
-"""TierCatalog backed by the JSON file written by the tier-review pytest plugin."""
+"""TestTierCatalog backed by the JSON file written by the tier-review pytest plugin."""
 from __future__ import annotations
 
 import json
@@ -9,15 +9,15 @@ from tier_review.tiers import Tier
 FORMAT_VERSION = 1
 
 
-class JsonTierCatalog:
+class JsonTestTierCatalog:
     def __init__(self, tiers: dict[str, Tier]):
         self._tiers = dict(tiers)
 
     @classmethod
-    def load(cls, path: Path) -> JsonTierCatalog:
+    def load(cls, path: Path) -> JsonTestTierCatalog:
         document = json.loads(path.read_text())
         if document.get("version") != FORMAT_VERSION:
-            raise ValueError(f"{path}: unsupported tier catalog version {document.get('version')!r}")
+            raise ValueError(f"{path}: unsupported test tier catalog version {document.get('version')!r}")
         return cls({test_id: Tier.parse(tier) for test_id, tier in document["tests"].items()})
 
     def tier_of(self, test_id: str) -> Tier | None:

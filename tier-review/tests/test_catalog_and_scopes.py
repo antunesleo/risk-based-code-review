@@ -1,5 +1,5 @@
 from tier_review.scopes import AstScopeResolver
-from tier_review.catalog import JsonTierCatalog
+from tier_review.test_tier_catalog import JsonTestTierCatalog
 from tier_review.tiers import Tier
 
 SOURCE = """\
@@ -28,9 +28,9 @@ def test_scope_resolver_returns_innermost_function_including_decorators(tmp_path
 
 def test_tier_catalog_round_trips(tmp_path):
     path = tmp_path / "tiers.json"
-    JsonTierCatalog({"tests/test_a.py::test_x": Tier.CRITICAL}).dump(path)
+    JsonTestTierCatalog({"tests/test_a.py::test_x": Tier.CRITICAL}).dump(path)
 
-    catalog = JsonTierCatalog.load(path)
+    catalog = JsonTestTierCatalog.load(path)
 
     assert catalog.tier_of("tests/test_a.py::test_x") is Tier.CRITICAL
     assert catalog.tier_of("unknown") is None
