@@ -44,19 +44,50 @@ Two steps: **catalog tiers**, then **classify the diff**.
 Full rules and package build in
 [tier-review/README.md](tier-review/README.md).
 
-## Run it
+## Try it
 
-All runs in Docker. Tool classifies working-tree changes against git (`BASE`, default `HEAD`).
+Needs `git`, `make`, Docker. All runs in containers.
+
+### 1. Watch the demo
 
 ```sh
-make demo         # catalog HEAD, then per scenario: apply, catalog, classify, revert (needs a clean tree)
-make review       # catalog BASE and the working tree, classify the diff (BASE=main for a branch)
-make test         # example codebase tests
-make tool-test    # tier-review unit tests
-make up           # serve the helpdesk on :8000 (HELPDESK_PORT=8089 make up)
+make demo
 ```
 
-`docker compose run --rm tier-review classify ... --format json` emits machine-readable decision for CI.
+Catalogs tiers of `HEAD`, then per scenario in `demo/scenarios/`: apply patch, catalog, classify diff, revert. Needs clean working tree. Results explained in [What the demo shows](#what-the-demo-shows).
+
+### 2. Make your own changes
+
+1. Edit any line(s) under `example-codebase/`. Ideas:
+   - `app/billing.py`, any line → money flow, expect **0**
+   - `app/helpers.py`, `fmt_date` → comment notifications, expect **1**
+   - `app/reports.py`, CSV header → export only, expect **2**
+   - `tests/test_billing.py`, `@pytest.mark.tier(0)` → `tier(2)` → retag, expect **0**
+   - `tests/test_reports.py`, add assertion to `test_health` → expect **2**
+   - delete a test, add new function nobody calls, edit `tests/conftest.py`, combine several of the above
+2. Classify:
+
+   ```sh
+   make review
+   ```
+
+   Catalogs tiers of `HEAD` (base) and working tree (head), classifies `git diff HEAD`. Output: tier, review route, **Why** (lines that set tier + tests behind them), **All changed code** (tier per line).
+
+   Edit breaks a test? Fine: catalog warns, each test keeps lines it reached before failing, diff still classified. Test without `@pytest.mark.tier` stops catalog with error.
+3. Reset when done (discards your edits):
+
+   ```sh
+   git checkout -- example-codebase && git clean -fd example-codebase
+   ```
+
+Variants:
+
+```sh
+make review BASE=main          # diff against another ref, e.g. commits on a branch
+make review FORMAT=json        # machine-readable decision, e.g. for CI
+```
+
+Example codebase's own tests and server: [example-codebase/README.md](example-codebase/README.md). Tool's unit tests: [tier-review/README.md](tier-review/README.md).
 
 ## What the demo shows
 

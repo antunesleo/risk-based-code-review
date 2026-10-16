@@ -11,3 +11,10 @@ Every test carries `@pytest.mark.tier(N)` for error-impact tier of flow it prote
 | 0 | financial loss, sensitive data exposure, regulatory violation | SLA credits, e-mail masking |
 | 1 | important business flow, limited or recoverable impact | tickets, comments, customers |
 | 2 | low impact, fixable without relevant consequences | CSV export, summary, health |
+
+## Run it
+
+```sh
+make test         # test suite in Docker
+make up           # serve the API on :8000 (PORT=8089 make up)
+```

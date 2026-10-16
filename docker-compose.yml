@@ -1,11 +1,6 @@
 name: monolith-review
 
 services:
-  # The example codebase (a helpdesk system), served.
-  helpdesk:
-    build: ./example-codebase
-    ports: ["${HELPDESK_PORT:-8000}:8000"]
-
   # Catalog tiers: runs the example codebase suite (application and test code measured)
   # and records
   #   /data/$CATALOG/.coverage        line -> tests (coverage contexts)
@@ -21,9 +16,20 @@ services:
     volumes:
       - ${CATALOG_SRC:-./example-codebase}:/work/example-codebase:ro
       - tier-data:/data
-    command: >
-      sh -c "mkdir -p /data/${CATALOG:-head} && pytest -q --cov --cov-context=test --cov-report=
-      --test-tiers=/data/${CATALOG:-head}/test-tiers.json --tier-strict"
+    # Failing tests (pytest exit code 1) still leave a usable catalog: each test is
+    # attributed the lines it reached before failing. Other exit codes are real errors.
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data/${CATALOG:-head}
+        pytest -q --cov --cov-context=test --cov-report= --test-tiers=/data/${CATALOG:-head}/test-tiers.json --tier-strict
+        rc=$$?
+        if [ $$rc -eq 1 ]; then
+          echo "catalog-tiers: some tests failed; their lines are cataloged up to the failure" >&2
+          exit 0
+        fi
+        exit $$rc
 
   # Classifies the working-tree diff against BASE, using both catalogs.
   tier-review:
@@ -34,7 +40,7 @@ services:
       - .:/repo:ro
       - tier-data:/data:ro
     command: >
-      classify --repo /repo --project example-codebase --base ${BASE:-HEAD}
+      classify --repo /repo --project example-codebase --base ${BASE:-HEAD} --format ${FORMAT:-text}
       --line-tests /data/head/.coverage --test-tiers /data/head/test-tiers.json
       --base-line-tests /data/base/.coverage --base-test-tiers /data/base/test-tiers.json
 
