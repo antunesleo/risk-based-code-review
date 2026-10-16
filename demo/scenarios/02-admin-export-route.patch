@@ -1,8 +1,8 @@
 # Declare the CSV charset in admin.py (the file that also issues money credits)
 
-diff --git a/helpdesk/app/admin.py b/helpdesk/app/admin.py
---- a/helpdesk/app/admin.py
-+++ b/helpdesk/app/admin.py
+diff --git a/example-codebase/app/admin.py b/example-codebase/app/admin.py
+--- a/example-codebase/app/admin.py
++++ b/example-codebase/app/admin.py
 @@ -20,7 +20,7 @@
  
  @router.get("/reports/tickets.csv", response_class=PlainTextResponse)

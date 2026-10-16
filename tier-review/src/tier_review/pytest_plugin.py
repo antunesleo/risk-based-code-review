@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from tier_review.adapters.tier_catalog import JsonTierCatalog
-from tier_review.domain import Tier
+from tier_review.catalog import JsonTierCatalog
+from tier_review.tiers import Tier
 
 
 def pytest_addoption(parser):

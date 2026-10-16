@@ -1,5 +1,5 @@
-from tier_review.adapters.diff import ProjectScope, parse_unified_diff
-from tier_review.domain import FileStatus
+from tier_review.diff import ProjectScope, parse_unified_diff
+from tier_review.changes import FileStatus
 
 DIFF = """\
 diff --git a/helpdesk/app/sla.py b/helpdesk/app/sla.py
@@ -72,3 +72,29 @@ diff --git a/app/x.py b/app/x.py
     (changed,) = parse_unified_diff(diff)
 
     assert changed.lines == {3, 4, 5, 6}  # 3 replaced, 4/5 surround the removed `d`, 6 added
+    assert changed.replaced_lines(3) == {3}
+    assert changed.replaced_lines(4) == {5} and changed.replaced_lines(5) == {5}
+    assert changed.replaced_lines(6) == frozenset()
+
+
+def test_pure_deletion_keeps_the_removed_base_lines():
+    files = {f.path: f for f in parse_unified_diff(DIFF, ProjectScope("helpdesk"))}
+
+    assert files["app/sla.py"].replaced_lines(29) == {30, 31}
+    assert files["app/sla.py"].replaced_lines(18) == {18}
+
+
+def test_blank_lines_are_not_changes():
+    diff = """\
+diff --git a/app/x.py b/app/x.py
+--- a/app/x.py
++++ b/app/x.py
+@@ -2,0 +3,4 @@
++
++
++def g():
++    return 1
+"""
+    (changed,) = parse_unified_diff(diff)
+
+    assert changed.lines == {5, 6}

@@ -1,6 +1,6 @@
-# helpdesk
+# example-codebase
 
-A deliberately entangled support ticket system (a big ball of mud). Customers open
+Example source code of a helpdesk system, entangled on purpose (a big ball of mud). Customers open
 tickets, agents reply, back office issues SLA credits and exports reports.
 
 There are no real module boundaries: `helpers.py` and `sla.py` are shared by

@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "tier-review"
 version = "0.1.0"
 description = "Decide which review tier a change needs, using per-test coverage contexts and test tiers."
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["coverage>=7.4"]
 
@@ -16,7 +17,7 @@ dev = ["pytest>=8"]
 tier-review = "tier_review.cli:main"
 
 [project.entry-points.pytest11]
-tier_review = "tier_review.collectors.pytest_plugin"
+tier_review = "tier_review.pytest_plugin"
 
 [tool.setuptools.packages.find]
 where = ["src"]

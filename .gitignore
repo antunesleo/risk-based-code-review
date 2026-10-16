@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# tier-review: base snapshot used to build the base coverage map
+.tier-review/

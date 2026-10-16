@@ -20,37 +20,29 @@ the changed lines.
 ## Repository layout
 
 ```
-helpdesk/      the big ball of mud: a small, deliberately entangled support ticket
-               system (FastAPI, in-memory data), every test tagged @pytest.mark.tier(0|1|2)
-tier-review/   the decision tool, independent of the helpdesk:
-                 domain/        Tier, ChangeSet, Verdict, Decision (pure values)
-                 ports.py       DiffSource, CoverageIndex, TierCatalog, ScopeResolver
-                 application/   ClassifyChange (the rules) + ReviewPolicy
-                 adapters/      git diff, coverage.py contexts, JSON catalog, AST scopes
-                 collectors/    pytest plugin: @pytest.mark.tier -> test-tiers.json
-                 cli.py         composition root
-demo/          scenario patches, each a one-line change, that show the tool deciding
-scripts/       demo runner
+example-codebase/  the big ball of mud: example source code of a helpdesk (support ticket)
+                   system, FastAPI with in-memory data, entangled on purpose. Every test
+                   is tagged @pytest.mark.tier(0|1|2)
+tier-review/       the decision tool: a Python package (CLI + pytest plugin + library) with
+                   its own tests, Makefile and README. The example codebase installs it
+                   from this local path. How it works inside: tier-review/README.md
+demo/              scenario patches, each a small change, that show the tool deciding
+scripts/           demo runner
 ```
 
 ## How it works
 
-1. **Map** (`make map`): the helpdesk suite runs with
-   `pytest --cov --cov-context=test --tier-catalog=... --tier-strict`.
-   - pytest-cov records *which test* executed every line (coverage.py dynamic contexts).
-   - The tier-review pytest plugin writes `test-tiers.json` (test id → tier) and fails the
-     run if any test has no tier.
-2. **Classify** (`make review`): `tier-review classify` reads the git diff and, for each
-   changed line:
-   1. ignored file (`*.md`, ...) → skip
-   2. a test file changed → **tier 0**, because it rewrites the map itself
-   3. deleted, moved or non-Python file → **tier 0**, because its impact can't be traced
-   4. line executed by tests → the most critical tier among those tests
-   5. line not executed (new line, comment, signature) → inherits the tests of its
-      enclosing function
-   6. still nothing → **tier 0**, because no test would catch a mistake
+1. **Map.** The example codebase's suite runs with pytest-cov recording *which test* executed every
+   line, application and test code, and the tier-review pytest plugin writing which tier
+   each test has. This happens twice: on the base commit (`make map-base`) and on the
+   working tree (`make map`).
+2. **Classify.** `tier-review classify` gives each changed line the most critical tier of
+   the tests that run it, now or on the base. A line no test reaches is tier 0, because
+   no test would catch a mistake there. The change takes the most critical tier of its
+   lines.
 
-   The change gets the most critical tier across all of its lines.
+The full rules, and how the package is built, are in
+[tier-review/README.md](tier-review/README.md).
 
 ## Run it
 
@@ -58,9 +50,9 @@ Everything runs in Docker. The tool classifies your working-tree changes against
 (`BASE`, default `HEAD`).
 
 ```sh
-make demo         # apply each scenario, rebuild the map, classify, revert (needs a clean tree)
-make review       # classify your own working-tree changes (BASE=main for a branch)
-make test         # helpdesk tests
+make demo         # map HEAD, then apply each scenario, map it, classify, revert (needs a clean tree)
+make review       # map BASE and the working tree, classify your changes (BASE=main for a branch)
+make test         # example codebase tests
 make tool-test    # tier-review unit tests
 make up           # serve the helpdesk on :8000 (HELPDESK_PORT=8089 make up)
 ```
@@ -71,7 +63,7 @@ decision for CI.
 ## What the demo shows
 
 The decision is per line, not per file. Each scenario changes a single line
-(paths relative to `helpdesk/`):
+(paths relative to `example-codebase/`):
 
 | Scenario | Changed line | Change | Decision | Why |
 |----------|--------------|--------|----------|-----|
@@ -82,23 +74,48 @@ The decision is per line, not per file. Each scenario changes a single line
 | 05 ticket listing | `app/tickets/service.py:61` | sort tickets by `(created_at, id)` | **1** | ticket list test |
 | 06 SLA breach rule | `app/sla.py:20` | `at > due_at` → `at >= due_at` | **0** | "it only feeds the export column", but billing uses it too |
 | 07 legacy helper | `app/helpers.py:53` | default priority `"low"` → `"normal"` | **0** | no test executes it |
-| 08 test edit | `tests/test_reports.py:32` | stronger health check assertions | **0** | changing a test changes the map |
+| 08 test edit | `tests/test_reports.py:32-35` | stronger health check assertions | **2** | only the (tier 2) health check test runs it |
 | 09 docs only | `README.md:9` | reword a sentence | **2** | nothing relevant changed |
+| 10 test retag | `tests/test_billing.py:6` | `@pytest.mark.tier(0)` → `tier(2)` | **0** | a test moved to a less critical tier keeps its base tier |
+| 11 test removed | `tests/test_billing.py:28-36` | delete a tier 0 SLA credit test | **0** | the removed test protected a tier 0 flow |
+| 12 feature with test | `app/tickets/service.py:61` + `tests/test_tickets.py:56-63` | stable ordering and a new tier 1 test | **1** | code and test both belong to tier 1 flows |
 
 Scenarios 02/03 and 04/07 show the point: the **same file** lands in different tiers
-depending on which line changed.
+depending on which line changed. Scenarios 08 and 10–12 show the same for test code.
+
+## Test code has a tier too
+
+The tiers are only as trustworthy as the tests behind them, so a PR that edits tests is
+editing the safety net of the flows they protect. That makes **reviewing tests as
+important as reviewing the code**: a weakened assertion in an SLA credit test is a tier 0
+risk, even if no application line changed.
+
+The tool treats test code like application code. A test line takes the tier of the tests
+that execute it (a fixture takes the most critical tier of the tests using it), so a PR
+that ships a tier 1 feature with its tier 1 test stays tier 1. The base map closes the ways
+a PR could make code look safer than it is:
+
+- **Retagging** `@pytest.mark.tier(0)` → `tier(2)` keeps tier 0 (scenario 10).
+- **Deleting a test** takes the tier it had on the base (scenario 11).
+- **Removing coverage**: code that tier 0 tests used to run stays tier 0 even if the PR
+  stops them from running it.
+
+Without a base map (`--base-coverage`, `--base-catalog`), the tool can't tell an edit from
+a downgrade, so any test change falls back to tier 0.
 
 ## Known limits (deliberately conservative)
 
-- **Map lag.** The demo rebuilds the map from the working tree, so it is exact. In a real
-  CI with a slow suite you would build it on `main` after each merge and only query it in
-  pull requests. New lines then rely on enclosing-function inheritance, and a merge that
-  makes a tier 0 flow reach a helper is invisible until the map is rebuilt. Rebuild on
-  every merge, not nightly.
+- **Map lag.** The demo builds both maps from scratch, so it is exact. In a real CI with
+  a slow suite you would keep the map built on `main` after each merge as the base map and
+  only build the head map in pull requests. Skip the head map too and new lines rely on
+  enclosing-function inheritance, and a change that makes a tier 0 flow reach a helper
+  goes unnoticed until the next map. Rebuild on every merge, not nightly.
 - **Import-time code.** Module-level statements (constants like `SLA_HOURS`) run during
   test collection, outside any test, so they are unattributable and fall to tier 0.
 - **Fixtures count.** Code that runs in a test's setup or teardown is attributed to that
-  test. The helpdesk's tier 0 tests seed data directly into the DB instead of going through
+  test. The example codebase's tier 0 tests seed data directly into the DB instead of going through
   the ticket API. Otherwise ticket creation would inherit tier 0.
+- **Assertion strength is invisible.** A weakened tier 2 test is still a tier 2 change.
+  That's acceptable by definition, and tier 0 tests always need an owner's review.
 - **Coverage is not correctness.** A line executed by a tier 2 test can still break a
   tier 0 flow that no test exercises. The tool can only be as good as the suite's tiers.

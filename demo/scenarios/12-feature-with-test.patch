@@ -1,0 +1,33 @@
+# Stable ticket list ordering, shipped with its new test (a typical PR)
+
+diff --git a/example-codebase/app/tickets/service.py b/example-codebase/app/tickets/service.py
+index 8434fb7..7847d09 100644
+--- a/example-codebase/app/tickets/service.py
++++ b/example-codebase/app/tickets/service.py
+@@ -58,4 +58,4 @@ def close_ticket(ticket_id):
+ 
+ 
+ def list_tickets(status=None):
+-    return sorted(TicketRepository().list(status), key=lambda t: t["created_at"], reverse=True)
++    return sorted(TicketRepository().list(status), key=lambda t: (t["created_at"], t["id"]), reverse=True)
+diff --git a/example-codebase/tests/test_tickets.py b/example-codebase/tests/test_tickets.py
+index d6e62d1..164e353 100644
+--- a/example-codebase/tests/test_tickets.py
++++ b/example-codebase/tests/test_tickets.py
+@@ -53,6 +53,16 @@ def test_list_tickets_filters_by_status(client, seed_customer, seed_ticket):
+     assert [t["id"] for t in response.json()] == [open_ticket["id"]]
+ 
+ 
++@pytest.mark.tier(1)
++def test_list_tickets_breaks_ties_by_newest_id(client, seed_customer, seed_ticket):
++    customer = seed_customer()
++    first, second = seed_ticket(customer), seed_ticket(customer)
++
++    response = client.get("/tickets")
++
++    assert [t["id"] for t in response.json()] == [second["id"], first["id"]]
++
++
+ @pytest.mark.tier(0)
+ def test_ticket_view_never_exposes_customer_email(client, seed_customer, seed_ticket):
+     ticket = seed_ticket(seed_customer(email="grace@example.com"))

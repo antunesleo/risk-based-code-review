@@ -1,0 +1,20 @@
+# Delete a tier 0 test ("it's redundant")
+
+diff --git a/example-codebase/tests/test_billing.py b/example-codebase/tests/test_billing.py
+index 590851e..964552b 100644
+--- a/example-codebase/tests/test_billing.py
++++ b/example-codebase/tests/test_billing.py
+@@ -24,13 +24,3 @@ def test_sla_credit_is_refused_when_sla_was_not_breached(client, seed_customer,
+     assert response.status_code == 409
+     assert db.DB["credits"] == []
+ 
+-
+-@pytest.mark.tier(0)
+-def test_sla_credit_cannot_be_issued_twice(client, seed_customer, seed_ticket):
+-    ticket = seed_ticket(seed_customer(), age_hours=30, sla_hours=24)
+-    client.post(f"/admin/tickets/{ticket['id']}/sla-credit")
+-
+-    response = client.post(f"/admin/tickets/{ticket['id']}/sla-credit")
+-
+-    assert response.status_code == 409
+-    assert len(db.DB["credits"]) == 1

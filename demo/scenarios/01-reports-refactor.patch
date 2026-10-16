@@ -1,8 +1,8 @@
 # Tidy up the CSV export loop (reports.py, only the export uses it)
 
-diff --git a/helpdesk/app/reports.py b/helpdesk/app/reports.py
---- a/helpdesk/app/reports.py
-+++ b/helpdesk/app/reports.py
+diff --git a/example-codebase/app/reports.py b/example-codebase/app/reports.py
+--- a/example-codebase/app/reports.py
++++ b/example-codebase/app/reports.py
 @@ -9,7 +9,7 @@
              ticket["id"],
              ticket["subject"],

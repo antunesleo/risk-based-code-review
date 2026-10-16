@@ -1,8 +1,8 @@
 # Docs only change (README.md)
 
-diff --git a/helpdesk/README.md b/helpdesk/README.md
---- a/helpdesk/README.md
-+++ b/helpdesk/README.md
+diff --git a/example-codebase/README.md b/example-codebase/README.md
+--- a/example-codebase/README.md
++++ b/example-codebase/README.md
 @@ -6,7 +6,7 @@
  There are no real module boundaries: `helpers.py` and `sla.py` are shared by
  ticketing, billing and reporting; `admin.py` puts a money endpoint next to a CSV

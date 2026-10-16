@@ -1,8 +1,8 @@
 # Stable ordering for the ticket list (tickets/service.py)
 
-diff --git a/helpdesk/app/tickets/service.py b/helpdesk/app/tickets/service.py
---- a/helpdesk/app/tickets/service.py
-+++ b/helpdesk/app/tickets/service.py
+diff --git a/example-codebase/app/tickets/service.py b/example-codebase/app/tickets/service.py
+--- a/example-codebase/app/tickets/service.py
++++ b/example-codebase/app/tickets/service.py
 @@ -58,4 +58,4 @@
  
  

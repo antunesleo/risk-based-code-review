@@ -1,3 +1,3 @@
 [run]
-source = app
+source = app, tests
 relative_files = True

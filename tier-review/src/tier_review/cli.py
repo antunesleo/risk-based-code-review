@@ -1,16 +1,16 @@
-"""Composition root: wires adapters into the use case and prints the decision."""
+"""Command line: reads the diff, coverage maps and catalogs, prints the decision."""
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
 
-from tier_review.adapters.coverage_index import CoveragePyIndex
-from tier_review.adapters.diff import GitDiffSource, ProjectScope, TextDiffSource
-from tier_review.adapters.python_scopes import AstScopeResolver
-from tier_review.adapters.tier_catalog import JsonTierCatalog
-from tier_review.application import ClassifyChange
-from tier_review.reporting import render_json, render_text
+from tier_review.coverage_index import CoveragePyIndex
+from tier_review.diff import GitDiffSource, ProjectScope, TextDiffSource
+from tier_review.scopes import AstScopeResolver
+from tier_review.catalog import JsonTierCatalog
+from tier_review.classify import BaseMap, ClassifyChange
+from tier_review.report import render_json, render_text
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,11 +19,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     classify = sub.add_parser("classify", help="decide the review tier of a change")
     classify.add_argument("--repo", type=Path, default=Path("."), help="git repository root (default: .)")
-    classify.add_argument("--project", default="", help="project directory inside the repo, e.g. helpdesk")
+    classify.add_argument("--project", default="", help="project directory inside the repo, e.g. example-codebase")
     classify.add_argument("--base", default="HEAD", help="git ref to diff the working tree against (default: HEAD)")
     classify.add_argument("--diff-file", help="read a unified diff from this file ('-' for stdin) instead of git")
     classify.add_argument("--coverage", type=Path, required=True, help="coverage.py data file with test contexts")
     classify.add_argument("--catalog", type=Path, required=True, help="test -> tier JSON written by the pytest plugin")
+    classify.add_argument("--base-coverage", type=Path, help="coverage data recorded on --base (enables test-aware rules)")
+    classify.add_argument("--base-catalog", type=Path, help="test -> tier JSON recorded on --base")
     classify.add_argument("--format", choices=("text", "json"), default="text")
     classify.add_argument("--max-tests", type=int, default=5, help="tests listed per finding in text output")
     return parser
@@ -48,11 +50,18 @@ def _classify(args: argparse.Namespace):
     else:
         diff = GitDiffSource(args.repo, args.base, scope)
 
+    if (args.base_coverage is None) != (args.base_catalog is None):
+        raise ValueError("--base-coverage and --base-catalog go together")
+    base = None
+    if args.base_coverage:
+        base = BaseMap(CoveragePyIndex(args.base_coverage), JsonTierCatalog.load(args.base_catalog))
+
     use_case = ClassifyChange(
         diff=diff,
         coverage=CoveragePyIndex(args.coverage),
         catalog=JsonTierCatalog.load(args.catalog),
         scopes=AstScopeResolver(args.repo / args.project),
+        base=base,
     )
     return use_case.execute()
 

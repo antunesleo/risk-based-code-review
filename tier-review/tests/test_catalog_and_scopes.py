@@ -1,6 +1,6 @@
-from tier_review.adapters.python_scopes import AstScopeResolver
-from tier_review.adapters.tier_catalog import JsonTierCatalog
-from tier_review.domain import Tier
+from tier_review.scopes import AstScopeResolver
+from tier_review.catalog import JsonTierCatalog
+from tier_review.tiers import Tier
 
 SOURCE = """\
 LIMIT = 3

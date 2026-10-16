@@ -1,0 +1,15 @@
+# Move an SLA credit test from tier 0 to tier 2 (only its marker changes)
+
+diff --git a/example-codebase/tests/test_billing.py b/example-codebase/tests/test_billing.py
+index 590851e..f7e0a79 100644
+--- a/example-codebase/tests/test_billing.py
++++ b/example-codebase/tests/test_billing.py
+@@ -3,7 +3,7 @@ import pytest
+ from app import db
+ 
+ 
+-@pytest.mark.tier(0)
++@pytest.mark.tier(2)
+ def test_sla_credit_is_issued_for_breached_ticket(client, seed_customer, seed_ticket):
+     customer = seed_customer(plan="pro")
+     ticket = seed_ticket(customer, priority="urgent", age_hours=10, sla_hours=4)

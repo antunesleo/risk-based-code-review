@@ -4,7 +4,8 @@ from __future__ import annotations
 import json
 from itertools import groupby
 
-from tier_review.domain import Decision, LineVerdict, Tier
+from tier_review.decision import Decision, LineVerdict
+from tier_review.tiers import Tier
 
 
 def render_json(decision: Decision) -> str:

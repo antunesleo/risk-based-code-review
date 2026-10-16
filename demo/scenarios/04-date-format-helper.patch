@@ -1,8 +1,8 @@
 # Rewrite fmt_date with an f-string (helpers.py, shared by comments and reports)
 
-diff --git a/helpdesk/app/helpers.py b/helpdesk/app/helpers.py
---- a/helpdesk/app/helpers.py
-+++ b/helpdesk/app/helpers.py
+diff --git a/example-codebase/app/helpers.py b/example-codebase/app/helpers.py
+--- a/example-codebase/app/helpers.py
++++ b/example-codebase/app/helpers.py
 @@ -38,7 +38,7 @@
  
  

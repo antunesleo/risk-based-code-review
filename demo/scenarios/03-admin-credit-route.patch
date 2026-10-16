@@ -1,8 +1,8 @@
 # Reword the SLA credit conflict message in admin.py (same file as the export)
 
-diff --git a/helpdesk/app/admin.py b/helpdesk/app/admin.py
---- a/helpdesk/app/admin.py
-+++ b/helpdesk/app/admin.py
+diff --git a/example-codebase/app/admin.py b/example-codebase/app/admin.py
+--- a/example-codebase/app/admin.py
++++ b/example-codebase/app/admin.py
 @@ -14,7 +14,7 @@
      except LookupError:
          raise HTTPException(status_code=404, detail="ticket not found")

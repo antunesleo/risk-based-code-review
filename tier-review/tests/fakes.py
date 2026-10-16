@@ -1,4 +1,5 @@
-from tier_review.domain import ChangeSet, Tier
+from tier_review.changes import ChangeSet
+from tier_review.tiers import Tier
 
 
 class FakeDiff:
@@ -23,6 +24,9 @@ class FakeCatalog:
 
     def tier_of(self, test_id):
         return self._tiers.get(test_id)
+
+    def test_ids(self):
+        return frozenset(self._tiers)
 
 
 class FakeScopes:

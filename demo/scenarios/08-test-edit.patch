@@ -1,8 +1,8 @@
 # Strengthen the health check test (a tier 2 test)
 
-diff --git a/helpdesk/tests/test_reports.py b/helpdesk/tests/test_reports.py
---- a/helpdesk/tests/test_reports.py
-+++ b/helpdesk/tests/test_reports.py
+diff --git a/example-codebase/tests/test_reports.py b/example-codebase/tests/test_reports.py
+--- a/example-codebase/tests/test_reports.py
++++ b/example-codebase/tests/test_reports.py
 @@ -29,4 +29,7 @@
  
  @pytest.mark.tier(2)

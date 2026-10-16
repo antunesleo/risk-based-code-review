@@ -1,0 +1,7 @@
+-r requirements.txt
+httpx==0.28.1
+pytest==8.3.4
+pytest-cov==6.0.0
+coverage==7.6.10
+# Local install: tier-review is not on PyPI. The path is relative to example-codebase/.
+../tier-review

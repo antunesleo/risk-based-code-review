@@ -1,8 +1,8 @@
 # Treat 'exactly at the deadline' as breached (sla.py, 'it only feeds the export column')
 
-diff --git a/helpdesk/app/sla.py b/helpdesk/app/sla.py
---- a/helpdesk/app/sla.py
-+++ b/helpdesk/app/sla.py
+diff --git a/example-codebase/app/sla.py b/example-codebase/app/sla.py
+--- a/example-codebase/app/sla.py
++++ b/example-codebase/app/sla.py
 @@ -17,4 +17,4 @@
      if ticket["status"] == "closed":
          return ticket["closed_at"] > ticket["due_at"]

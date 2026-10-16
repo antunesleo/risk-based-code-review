@@ -1,0 +1,10 @@
+# Test image for the example codebase. Built from the repository root because the dev
+# requirements install tier-review from the sibling directory (../tier-review).
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+COPY tier-review /work/tier-review
+WORKDIR /work/example-codebase
+COPY example-codebase/requirements.txt example-codebase/requirements-dev.txt ./
+RUN pip install --no-cache-dir -r requirements-dev.txt
+COPY example-codebase /work/example-codebase
+CMD ["pytest", "-q"]

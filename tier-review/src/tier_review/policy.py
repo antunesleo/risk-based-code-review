@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from fnmatch import fnmatch
 
-from tier_review.domain import Tier
+from tier_review.tiers import Tier
 
 
 @dataclass(frozen=True)

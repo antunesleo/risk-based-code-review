@@ -1,8 +1,8 @@
 # Change the default of a forgotten, untested helper (helpers.py)
 
-diff --git a/helpdesk/app/helpers.py b/helpdesk/app/helpers.py
---- a/helpdesk/app/helpers.py
-+++ b/helpdesk/app/helpers.py
+diff --git a/example-codebase/app/helpers.py b/example-codebase/app/helpers.py
+--- a/example-codebase/app/helpers.py
++++ b/example-codebase/app/helpers.py
 @@ -50,4 +50,4 @@
  
  def legacy_priority_from_v1(code):
