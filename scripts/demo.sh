@@ -14,19 +14,19 @@ if [ -n "$(git ls-files --others --exclude-standard example-codebase tier-review
   exit 1
 fi
 
-docker compose build --quiet catalog-tiers tier-review
+tier_review() { HOST_UID="$(id -u)" HOST_GID="$(id -g)" docker compose --progress quiet run --rm -T tier-review "$@"; }
 
 # The base catalog: the committed tree, before any scenario is applied.
 echo "cataloging tiers of HEAD (base)..."
-make --no-print-directory catalog-tiers-base BASE=HEAD > /dev/null
+tier_review catalog --out .tier-review/base --ref HEAD > /dev/null
 
 for patch in demo/scenarios/*.patch; do
   title=$(sed -n 's/^# //p' "$patch" | head -1)
   printf '\n\033[1m=== %s\033[0m\n    %s\n\n' "$(basename "$patch" .patch)" "$title"
   git apply "$patch"
   trap 'git apply -R "$patch"' EXIT
-  CATALOG=head docker compose run --rm -T catalog-tiers > /dev/null
-  docker compose run --rm -T tier-review
+  tier_review catalog --out .tier-review/head > /dev/null
+  tier_review classify --base HEAD --catalog .tier-review/head --base-catalog .tier-review/base
   git apply -R "$patch"
   trap - EXIT
 done

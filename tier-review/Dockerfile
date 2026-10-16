@@ -10,7 +10,6 @@ RUN pip install --no-cache-dir .
 ENTRYPOINT ["tier-review"]
 
 FROM runtime AS test
-RUN pip install --no-cache-dir ".[dev]"
 COPY tests ./tests
 ENTRYPOINT []
 CMD ["pytest", "-q"]

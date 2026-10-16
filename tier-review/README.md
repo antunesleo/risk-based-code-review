@@ -22,7 +22,7 @@ In requirements file, add path relative to where pip runs. Example codebase does
 ../tier-review
 ```
 
-Install registers `tier-review` command and pytest plugin, both via entry points in `pyproject.toml`.
+Install registers `tier-review` command and pytest plugin, both via entry points in `pyproject.toml`. Pulls pytest and pytest-cov: install into project's test environment, since catalog step runs project's suite.
 
 ## Use it
 
@@ -33,26 +33,32 @@ Install registers `tier-review` command and pytest plugin, both via entry points
 def test_sla_credit_cannot_be_issued_twice(...): ...
 ```
 
-**2. Catalog tiers** — line → tests (`LineTestCatalog`) and test → tier (`TestTierCatalog`), together `CatalogTiers`:
+**2. Catalog tiers** — line → tests (`LineTestCatalog`) and test → tier (`TestTierCatalog`), together `CatalogTiers`. Catalog twice: working tree and base commit:
 
 ```sh
-pytest --cov --cov-context=test --test-tiers=test-tiers.json --tier-strict
+tier-review catalog --project example-codebase --out head
+tier-review catalog --project example-codebase --out base --ref main
 ```
 
-`--cov-context=test` makes coverage.py label every executed line with test that ran it. `--test-tiers` writes `test-tiers.json` (test id → tier); `--tier-strict` fails run if any test has no tier. Measure test code too (`source = app, tests` in `.coveragerc`) so test changes get classified.
+Runs project's pytest suite in `--project` and writes `<out>/.coverage` and `<out>/test-tiers.json`. With `--ref`, extracts project as it was at that ref (`git archive`) to temp dir, catalogs it there. Arguments after `--` go to pytest. Under the hood:
 
-Catalog twice: on base commit and on working tree.
+```sh
+COVERAGE_FILE=<out>/.coverage pytest --cov --cov-context=test --cov-report= \
+    --test-tiers=<out>/test-tiers.json --tier-strict
+```
+
+`--cov-context=test` makes coverage.py label every executed line with test that ran it. `--test-tiers` writes test id → tier; `--tier-strict` fails run if any test has no tier. Measure test code too (`source = app, tests` in `.coveragerc`) so test changes get classified.
+
+Failing tests only warn: each test keeps lines it reached before failing. Other pytest errors (missing tier marker, no tests) fail catalog. Base catalog uses current environment's dependencies; diff changing them is tier 0 anyway (non-Python file).
 
 **3. Classify the diff:**
 
 ```sh
 tier-review classify --repo . --project example-codebase --base main \
-    --line-tests head/.coverage --test-tiers head/test-tiers.json \
-    --base-line-tests base/.coverage --base-test-tiers base/test-tiers.json \
-    [--format json]
+    --catalog head --base-catalog base [--format json]
 ```
 
-Prints tier, review route, deciding lines, tests behind each line. `--diff-file` reads unified diff instead of asking git. Base catalog optional, but without it any test change = tier 0 (see below).
+Prints tier, review route, deciding lines, tests behind each line. `--diff-file` reads unified diff instead of asking git. Catalog files elsewhere: `--line-tests`/`--test-tiers` (and `--base-` versions) instead of directories. `$TIER_REVIEW_PROJECT` sets default `--project` for both commands. Base catalog optional, but without it any test change = tier 0 (see below).
 
 From Python:
 
@@ -76,6 +82,8 @@ src/tier_review/
   decision.py           Decision > LineVerdict > Verdict (tier, Reason, tests)
   policy.py             ReviewPolicy: which paths are tests, docs, source; the fallback tier
 
+  catalog.py            catalog step: run pytest with coverage contexts + plugin, base via git archive
+
   diff.py               DiffSource from `git diff -U0` or from text
   line_test_catalog.py  CoveragePyLineTestCatalog: LineTestCatalog from a coverage.py data file
   test_tier_catalog.py  JsonTestTierCatalog: TestTierCatalog from the plugin's JSON
@@ -83,7 +91,7 @@ src/tier_review/
 
   pytest_plugin.py      @pytest.mark.tier -> test-tiers.json
   report.py             text and JSON rendering
-  cli.py                argument parsing; builds the readers and runs ClassifyDiff
+  cli.py                argument parsing; runs catalog, or builds the readers and runs ClassifyDiff
 ```
 
 `classify.py` is core. Depends only on value types (`tiers`, `changes`, `decision`, `policy`) and interfaces it declares. Readers implement interfaces with real files; unit tests implement them with in-memory fakes (`tests/fakes.py`). Only `cli.py` wires readers and rules together.
@@ -113,6 +121,6 @@ Test line takes tier of tests that execute it. For test, that's itself; fixture 
 
 ```sh
 make test        # unit tests in Docker
-make install     # pip install -e ".[dev]" into the current environment
+make install     # pip install -e . into the current environment
 make dev-test    # unit tests in the current environment
 ```

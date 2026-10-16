@@ -29,19 +29,21 @@ scripts/           demo runner
 
 Two steps: **catalog tiers**, then **classify the diff**.
 
-1. **Catalog tiers.** Example codebase suite runs and records two catalogs:
+1. **Catalog tiers.** `tier-review catalog` runs example codebase suite and records two
+   catalogs into one directory:
    - `LineTestCatalog` (`.coverage`): line → tests that executed it (pytest-cov contexts,
      app and test code).
    - `TestTierCatalog` (`test-tiers.json`): test → tier (tier-review pytest plugin).
 
-   Together = `CatalogTiers`. Built twice: on base commit (`make catalog-tiers-base`) and
-   on working tree (`make catalog-tiers`). No line → tier table is stored.
+   Together = `CatalogTiers`. Built twice: on working tree (`.tier-review/head`) and on
+   base commit (`--ref`, `.tier-review/base`). No line → tier table is stored.
 2. **Classify the diff.** `tier-review classify` chains the catalogs per changed line,
    line → tests → tiers, and keeps most critical tier, now or on base. Line no test
    reaches = tier 0, since no test would catch mistake there. Diff takes most critical
    tier of its lines.
 
-Full rules and package build in
+Both steps are tier-review CLI commands; this repo runs them in Docker, inside example
+codebase test environment. Full rules and package build in
 [tier-review/README.md](tier-review/README.md).
 
 ## Try it
@@ -71,7 +73,7 @@ Catalogs tiers of `HEAD`, then per scenario in `demo/scenarios/`: apply patch, c
    make review
    ```
 
-   Catalogs tiers of `HEAD` (base) and working tree (head), classifies `git diff HEAD`. Output: tier, review route, **Why** (lines that set tier + tests behind them), **All changed code** (tier per line).
+   Catalogs tiers of working tree (head) and `HEAD` (base), classifies `git diff HEAD`. Output: tier, review route, **Why** (lines that set tier + tests behind them), **All changed code** (tier per line).
 
    Edit breaks a test? Fine: catalog warns, each test keeps lines it reached before failing, diff still classified. Test without `@pytest.mark.tier` stops catalog with error.
 3. Reset when done (discards your edits):
@@ -86,6 +88,22 @@ Variants:
 make review BASE=main          # diff against another ref, e.g. commits on a branch
 make review FORMAT=json        # machine-readable decision, e.g. for CI
 ```
+
+### 3. Run the tool step by step
+
+`make review` = three tier-review commands. Run them yourself with `make tier-review -- <args>`
+(CLI in Docker, project `example-codebase`; `--` keeps make from eating the flags):
+
+```sh
+make tier-review -- catalog --out .tier-review/head              # catalog working tree
+make tier-review -- catalog --out .tier-review/base --ref HEAD   # catalog base snapshot
+make tier-review -- classify --base HEAD \
+    --catalog .tier-review/head --base-catalog .tier-review/base  # classify the diff
+make tier-review -- catalog --out .tier-review/head -- -k billing  # after 2nd --: pytest args
+make tier-review -- classify --help                              # all options
+```
+
+Catalogs land in `.tier-review/` (gitignored); inspect `test-tiers.json` or open `.coverage` with coverage.py. Re-catalog head after each edit.
 
 Example codebase's own tests and server: [example-codebase/README.md](example-codebase/README.md). Tool's unit tests: [tier-review/README.md](tier-review/README.md).
 
@@ -121,7 +139,7 @@ Tool treats test code like app code. Test line takes tier of tests executing it 
 - **Deleting a test** takes tier it had on base (scenario 11).
 - **Removing coverage**: code tier 0 tests used to run stays tier 0 even if PR stops them running it.
 
-Without base catalog (`--base-line-tests`, `--base-test-tiers`), tool can't tell edit from downgrade, so any test change falls back to tier 0.
+Without base catalog (`--base-catalog`), tool can't tell edit from downgrade, so any test change falls back to tier 0.
 
 ## Known limits (deliberately conservative)
 

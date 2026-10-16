@@ -1,48 +1,18 @@
 name: monolith-review
 
 services:
-  # Catalog tiers: runs the example codebase suite (application and test code measured)
-  # and records
-  #   /data/$CATALOG/.coverage        line -> tests (coverage contexts)
-  #   /data/$CATALOG/test-tiers.json  test -> tier (@pytest.mark.tier)
-  # CATALOG=head catalogs the working tree; CATALOG=base with CATALOG_SRC a base snapshot.
-  catalog-tiers:
+  # tier-review runs in the example codebase's test environment: cataloging runs its
+  # suite, so it needs its dependencies (and git, to snapshot the base). The repo is
+  # mounted at /repo, so paths such as .tier-review/head land in the working tree.
+  # Run it as the host user (HOST_UID/HOST_GID) so the catalogs it writes stay yours.
+  tier-review:
     build:
       context: .
       dockerfile: example-codebase/Dockerfile.test
-    working_dir: /work/example-codebase
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    working_dir: /repo
     environment:
-      COVERAGE_FILE: /data/${CATALOG:-head}/.coverage
+      TIER_REVIEW_PROJECT: example-codebase
     volumes:
-      - ${CATALOG_SRC:-./example-codebase}:/work/example-codebase:ro
-      - tier-data:/data
-    # Failing tests (pytest exit code 1) still leave a usable catalog: each test is
-    # attributed the lines it reached before failing. Other exit codes are real errors.
-    command:
-      - sh
-      - -c
-      - |
-        mkdir -p /data/${CATALOG:-head}
-        pytest -q --cov --cov-context=test --cov-report= --test-tiers=/data/${CATALOG:-head}/test-tiers.json --tier-strict
-        rc=$$?
-        if [ $$rc -eq 1 ]; then
-          echo "catalog-tiers: some tests failed; their lines are cataloged up to the failure" >&2
-          exit 0
-        fi
-        exit $$rc
-
-  # Classifies the working-tree diff against BASE, using both catalogs.
-  tier-review:
-    build:
-      context: ./tier-review
-      target: runtime
-    volumes:
-      - .:/repo:ro
-      - tier-data:/data:ro
-    command: >
-      classify --repo /repo --project example-codebase --base ${BASE:-HEAD} --format ${FORMAT:-text}
-      --line-tests /data/head/.coverage --test-tiers /data/head/test-tiers.json
-      --base-line-tests /data/base/.coverage --base-test-tiers /data/base/test-tiers.json
-
-volumes:
-  tier-data:
+      - .:/repo
+    entrypoint: ["tier-review"]

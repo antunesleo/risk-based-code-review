@@ -1,7 +1,12 @@
 # Test image for the example codebase. Built from the repository root because the dev
 # requirements install tier-review from the sibling directory (../tier-review).
+# Also the environment tier-review runs in (docker-compose.yml): catalogs need the
+# project's dependencies, and git to snapshot the base.
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --system --add safe.directory '*'
 COPY tier-review /work/tier-review
 WORKDIR /work/example-codebase
 COPY example-codebase/requirements.txt example-codebase/requirements-dev.txt ./
