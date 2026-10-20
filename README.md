@@ -28,6 +28,12 @@ to bottom, or clone the repo and run every claim yourself.
 9. **It has known limits:** it can't see assertion strength, and it's only as good as the
    tests and their tiers.
 
+> [!WARNING]
+> **This is a proof of concept, not a product.** The code was vibe-coded (written mostly
+> with an AI coding assistant) to demonstrate the idea, and it hasn't been hardened,
+> reviewed or tested beyond this demo. Don't use it to gate real pull requests. Take the
+> idea, and build your own implementation if it fits your team.
+
 ## The problem: review doesn't scale
 
 A team ships a small pull request on a Friday:
