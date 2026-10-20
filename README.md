@@ -13,8 +13,9 @@ to bottom, or clone the repo and run every claim yourself.
    review only, important ones get a human, and critical ones get the domain owner.
 3. **Risk is a tier of error impact:** tier 0 means money, sensitive data or regulation;
    tier 1 means an important but recoverable flow; tier 2 means low impact.
-4. **File paths can't tell you the tier.** In real codebases, one file holds both a money
-   endpoint and a CSV export, and a "harmless" helper feeds billing.
+4. **File paths can't tell you the tier.** In real codebases, one file often mixes features
+   that move money or handle sensitive data with low-stakes ones like a report or a
+   housekeeping task, and a helper that looks harmless can feed a critical flow.
 5. **Tests can tell you the tier.** Tag each test with the tier of the flow it protects,
    record which tests execute each line, and give each changed line the most critical tier
    among its tests.
