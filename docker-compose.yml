@@ -1,4 +1,4 @@
-name: monolith-review
+name: risk-based-code-review
 
 services:
   # tier-review runs in the example codebase's test environment: cataloging runs its

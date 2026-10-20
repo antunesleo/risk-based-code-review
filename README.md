@@ -1,4 +1,4 @@
-# monolith-review
+# risk-based-code-review
 
 Explore auto and semi-auto code review: decide which review PR needs when codebase is **big ball of mud**, coupled, entangled code, no real module boundaries.
 
